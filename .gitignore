@@ -1,3 +1,4 @@
 .env
 .idea
+*.pyc
 secrets/bot_api_key
