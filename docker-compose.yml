@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  bot:
+    build: .
+    expose:
+      - 8000
+    ports:
+      - 8000:8000
+    volumes:
+      - ./bot:/proxybot/bot
+    secrets:
+      - BOT_API_KEY  # fetch in app by reading /run/secrets/BOT_API_KEY
+    env_file:
+      - .env
+
+secrets:
+  BOT_API_KEY:
+    file: ./secrets/bot_api_key
+

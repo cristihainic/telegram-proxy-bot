@@ -1,0 +1,5 @@
+sanic==21.3.4
+httpx==0.18.1
+ipython==7.24.1
+ipdb==0.13.9
+aiofiles==0.7.0
