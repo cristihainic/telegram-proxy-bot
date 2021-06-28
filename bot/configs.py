@@ -12,7 +12,7 @@ async def api_key():
 
 async def bot_url():
     key = await api_key()
-    return os.environ.get('TG_BASE_URL').format(key)
+    return os.environ.get('TG_BASE_URL').format(urllib.parse.quote_plus(key))
 
 
 async def webhook():
