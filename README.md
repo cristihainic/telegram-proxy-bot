@@ -11,7 +11,7 @@ A bot to receive messages on Telegram without revealing your identity to message
 2. Create a `secrets` directory with a `bot_api_key` file containing your Telegram bot key:
     ```
     mkdir secrets
-    echo "123asd-mybotkey-blabla" > secrets/bot_api_key
+    printf "123asd-mybotkey-blabla" > secrets/bot_api_key
     ```
 3. `cp .env.template .env` and modify the latter to your liking;
 4. `docker-compose up` and profit.
