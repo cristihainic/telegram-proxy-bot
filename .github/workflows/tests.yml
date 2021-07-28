@@ -18,7 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install requirements-dev.txt
+          pip install -r requirements-dev.txt
       - name: Linting
         run: |
           flake8 --max-line-length=120
