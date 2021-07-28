@@ -5,6 +5,7 @@ WORKDIR /proxybot
 ARG REQS_FILE=requirements.txt
 COPY requirements.txt /proxybot/
 COPY requirements-dev.txt /proxybot/
+COPY setup.cfg /proxybot/
 RUN pip install -r $REQS_FILE
 EXPOSE 80
 
