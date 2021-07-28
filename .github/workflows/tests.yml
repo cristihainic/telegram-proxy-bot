@@ -24,9 +24,9 @@ jobs:
       - name: Build and Run bot container
         run: docker-compose build --build-arg REQS_FILE=requirements-dev.txt
       - name: Linting
-        run: docker-compose exec bot flake8 --max-line-length=120
+        run: docker-compose exec -T bot flake8 --max-line-length=120
       - name: Unit tests
-        run: docker-compose exec bot pytest --cov=bot/
+        run: docker-compose exec -T bot pytest --cov=bot/
 #      - name: Install dependencies
 #        run: |
 #          pip install -r requirements-dev.txt
