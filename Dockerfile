@@ -1,11 +1,12 @@
-FROM python:3.8
+FROM python:3.9
 ENV PYTHONUNBUFFERED 1
-RUN mkdir /proxybot
+ENV PYTHONPATH /proxybot
 WORKDIR /proxybot
+ARG REQS_FILE=requirements.txt
 COPY requirements.txt /proxybot/
-RUN pip install -r requirements.txt
-COPY ./bot/ /proxybot/
+COPY requirements-dev.txt /proxybot/
+RUN pip install -r $REQS_FILE
 EXPOSE 80
 
-CMD python app.py
+CMD python bot/app.py
 

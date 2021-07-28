@@ -1,0 +1,7 @@
+-r requirements.txt
+
+ipython==7.24.1
+ipdb==0.13.9
+pytest-sanic
+pytest-cov
+sanic-testing
