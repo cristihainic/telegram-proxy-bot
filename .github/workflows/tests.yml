@@ -16,6 +16,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Pre-requisites
+        run: cp .env.template .env
       - name: Build
         run: docker-compose build
       - name: Linting
