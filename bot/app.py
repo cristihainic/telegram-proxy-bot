@@ -7,6 +7,7 @@ from sanic.log import logger
 from bot.configs import bot_url, webhook, api_key
 from bot.controllers import health, updates
 
+
 app = Sanic('TGProxyBot')
 
 

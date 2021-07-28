@@ -16,4 +16,11 @@ A bot to receive messages on Telegram without revealing your identity to message
 3. `cp .env.template .env` and modify the latter to your liking;
 4. `docker-compose up` and profit.
 
- 
+### Development
+Contributions are welcome! 
+
+When developing, build the project with the `REQS_FILE` build argument set to `requirements-dev.txt` e.g, 
+
+```docker-compose build --build-arg REQS_FILE=requirements-dev.txt```
+
+Feel free to work on any of the known issues or open a new one [here](https://github.com/cristihainic/telegram-proxy-bot/issues).
