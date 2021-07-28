@@ -17,7 +17,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pre-requisites
-        run: cp .env.template .env
+        run: |
+        cp .env.template .env
+        printf "123-bot-secret-123" > /home/runner/work/telegram-proxy-bot/telegram-proxy-bot/secrets/bot_api_key
       - name: Build
         run: docker-compose build
       - name: Linting
