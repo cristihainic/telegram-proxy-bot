@@ -5,3 +5,4 @@ ipdb==0.13.9
 pytest-sanic
 pytest-cov
 sanic-testing
+flake8

@@ -19,7 +19,7 @@ async def updates(request):
     except KeyError:
         return HTTPResponse(status=400)
     if message['from']['is_bot']:
-        return json({}, status=201) # dismiss bots
+        return json({}, status=201)  # dismiss bots
     user_id = message['from']['id']
     if message.get('text') == '/myid':
         await send_msg(chat_id=user_id, msg=str(user_id), reply_to=message['message_id'])

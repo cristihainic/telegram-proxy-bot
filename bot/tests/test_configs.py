@@ -1,7 +1,5 @@
 import urllib.parse
 
-import pytest
-
 from bot.configs import api_key, webhook
 
 
