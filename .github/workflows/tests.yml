@@ -16,12 +16,19 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          pip install -r requirements-dev.txt
+      - name: Build
+        run: docker-compose build
       - name: Linting
-        run: |
-          flake8 --max-line-length=120
-      - name: Test with pytest
-        run: |
-          pytest -x --cov=bot/
+        run: docker-compose run bot flake8 --max-line-length=120
+      - name: Unit tests
+        run: docker-compose run bot pytest --cov=bot/
+#      - name: Install dependencies
+#        run: |
+#          pip install -r requirements-dev.txt
+#      - name: Linting
+#        run: |
+#          flake8 --max-line-length=120
+#      - name: Test with pytest
+#        run: |
+#          pytest -x --cov=bot/
+
