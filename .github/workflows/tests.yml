@@ -21,8 +21,8 @@ jobs:
           cp .env.template .env
           mkdir secrets
           printf "123-bot-secret-456" > secrets/bot_api_key
-      - name: Build
-        run: docker-compose build
+      - name: Build and Run bot container
+        run: docker-compose up --build
       - name: Linting
         run: docker-compose exec bot flake8 --max-line-length=120
       - name: Unit tests
