@@ -19,7 +19,8 @@ jobs:
       - name: Pre-requisites
         run: |
           cp .env.template .env
-          printf "123-bot-secret-456" > /home/runner/work/telegram-proxy-bot/telegram-proxy-bot/secrets/bot_api_key
+          mkdir secrets
+          printf "123-bot-secret-456" > secrets/bot_api_key
       - name: Build
         run: docker-compose build
       - name: Linting
