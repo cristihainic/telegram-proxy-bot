@@ -1,4 +1,4 @@
-[build](https://github.com/cristihainic/telegram-proxy-bot/actions/workflows/tests.yml/badge.svg)
+![build](https://github.com/cristihainic/telegram-proxy-bot/actions/workflows/tests.yml/badge.svg)
 
 # Telegram Proxy Bot
 
