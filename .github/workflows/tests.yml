@@ -1,0 +1,29 @@
+name: tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pre-requisites
+        run: |
+          cp .env.template .env
+          mkdir secrets
+          printf "123-bot-secret-456" > secrets/bot_api_key
+      - name: Build
+        run: docker-compose build --build-arg REQS_FILE=requirements-dev.txt
+      - name: Lint
+        run: docker-compose run bot flake8 --max-line-length=120
+      - name: Unit tests
+        run: docker-compose run bot pytest --cov=bot/

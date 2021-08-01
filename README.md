@@ -1,3 +1,5 @@
+![build](https://github.com/cristihainic/telegram-proxy-bot/actions/workflows/tests.yml/badge.svg)
+
 # Telegram Proxy Bot
 
 A bot to receive messages on Telegram without revealing your identity to message senders. 
