@@ -21,19 +21,9 @@ jobs:
           cp .env.template .env
           mkdir secrets
           printf "123-bot-secret-456" > secrets/bot_api_key
-      - name: Build and Run bot container
+      - name: Build
         run: docker-compose build --build-arg REQS_FILE=requirements-dev.txt
-      - name: Linting
+      - name: Lint
         run: docker-compose run bot flake8 --max-line-length=120
       - name: Unit tests
         run: docker-compose run bot pytest --cov=bot/
-#      - name: Install dependencies
-#        run: |
-#          pip install -r requirements-dev.txt
-#      - name: Linting
-#        run: |
-#          flake8 --max-line-length=120
-#      - name: Test with pytest
-#        run: |
-#          pytest -x --cov=bot/
-
