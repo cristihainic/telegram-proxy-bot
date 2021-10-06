@@ -33,5 +33,4 @@ async def updates(request):
             await send_msg(chat_id=user_id, msg=start_reply, reply_to=message['message_id'])
     else:
         await forward_msg(chat_id=os.environ.get('PROXY_TO'), from_chat_id=chat_id, message_id=message['message_id'])
-        await send_msg(chat_id=user_id, msg=start_reply, reply_to=message['message_id'])
     return json({}, status=201)
