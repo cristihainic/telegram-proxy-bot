@@ -2,6 +2,7 @@ import os
 
 import ujson
 from sanic import json, HTTPResponse
+from sanic.log import logger
 
 from bot.senders import send_msg, forward_msg
 
@@ -37,17 +38,21 @@ async def send_to_user(txt: str):
 async def updates(request):
     try:
         message = request.json['message']
-    except KeyError:
-        return HTTPResponse(status=400)
+    except KeyError:  # we currently don't handle message edits, new chat members, kick notifications etc.
+        logger.error(f'An update we don\'t handle received from Telegram: {request.json}')
+        return HTTPResponse()
     if message['from']['is_bot']:
-        return json({}, status=201)  # dismiss bots
+        return HTTPResponse()  # dismiss bots
 
     user_id = message['from']['id']
     chat_id = message['chat']['id']
     txt = message.get('text')
 
-    if chat_id == proxy_to and 'send' in txt:
-        await send_to_user(txt)
+    if chat_id == proxy_to:
+        if 'send' in txt:
+            await send_to_user(txt)
+        else:  # don't reply to replies to own messages on the PROXY_TO chat
+            return HTTPResponse()
     elif txt == '/myid':
         msg = f'Your ID: {user_id}. Chat ID: {chat_id}'
         await send_msg(chat_id=user_id, msg=msg, reply_to=message['message_id'])
@@ -58,4 +63,4 @@ async def updates(request):
     else:
         await send_msg(chat_id=proxy_to, msg=f"Incoming message from: {ujson.dumps(message['from'])}")
         await forward_msg(chat_id=proxy_to, from_chat_id=chat_id, message_id=message['message_id'])
-    return json({}, status=201)
+    return HTTPResponse(status=201)
