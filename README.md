@@ -2,11 +2,13 @@
 
 # Telegram Proxy Bot
 
-A bot to receive messages on Telegram without revealing your identity to message senders. 
+A bot to receive and send messages on Telegram without revealing your identity to other users. 
 
 ### Features
-- Out-of-the-box, this bot forwards all messages it receives to a chat of your liking.
-- Potentially, this Telegram bot can be extended to do whatever you want.
+This bot:
+- forwards all messages it receives to a chat (DM or group chat) of your liking;
+- sends the user messages back without revealing your identity.
+- **NO** persistent storage of user information --> **NO** GDPR issues.
 
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
@@ -17,6 +19,37 @@ A bot to receive messages on Telegram without revealing your identity to message
     ```
 3. `cp .env.template .env` and modify the latter to your liking;
 4. `docker-compose up` and profit.
+
+### Experience the proxy bot awesomeness
+#### Receiving messages 
+To allow you to reply to users and to bypass some annoying Telegram behavior (e.g., no "Forwarded from..." message is included if a user sends you an audio files, leaving you clueless as to _who_ sent the message), the bot will send "pre-flight" messages for all messages it proxies to you. These pre-flight messages include the details of the sender, in the form of:
+```
+Incoming message from: 
+{
+    "id": 19612312371,
+    "is_bot":false,
+    "first_name":"John",
+    "last_name":"Smith",
+    "username":"JS666",
+    "language_code":"en"
+}
+```
+Then, the actual forwarded message ensues.
+
+#### Sending messages
+The Telegram ID above is the unique identifier of a user throughout the app. To have the bot send a reply to a user, **reply** to any of the bot's messages or forwards with this:
+
+```
+send || <user id> || your message here
+```
+
+So, if we wanted to send a message back to John Smith, we'd **reply to any** of the bot's messages with:
+```
+send || 19612312371 || Hi John, nice to meet you. You have no idea who's behind this bot.
+```
+
+John will then receive the message from the bot.
+
 
 ### Development
 Contributions are welcome! 

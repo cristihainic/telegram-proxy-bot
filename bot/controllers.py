@@ -8,13 +8,16 @@ from bot.senders import send_msg, forward_msg
 
 proxy_to = int(os.environ.get('PROXY_TO'))
 
-
 async def health(request):
     return json({
         'api': True,
         'updates_callback': True if request.app.ctx.tg_webhook else False,
         'db': None
     })
+
+
+async def send_incorrect_message(to: int, msg: str) -> None:
+    await send_msg(chat_id=to, msg=msg)
 
 
 async def send_to_user(txt: str):
@@ -27,10 +30,9 @@ async def send_to_user(txt: str):
     some message - the message to be sent by the bot
     """
     cmd = [e.strip() for e in txt.split('||')]
-    checks = (len(cmd) == 3, cmd[0] == 'send', cmd[1].isnumeric())
-    if not all(checks):
-        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: {txt}. Expecting something in the form:'
-                                              f' send || <chat_id> || <your_message_here'))
+    if (not len(cmd) == 3) or (not cmd[0].lower() == 'send') or (not cmd[1].isnumeric()):
+        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
+                                              f' send || <chat_id> || <your_message_here>'))
         return
     await send_msg(chat_id=int(cmd[1]), msg=cmd[2])
 
@@ -49,9 +51,9 @@ async def updates(request):
     txt = message.get('text')
 
     if chat_id == proxy_to:
-        if 'send' in txt:
+        if 'send' in txt.lower():
             await send_to_user(txt)
-        else:  # don't reply to replies to own messages on the PROXY_TO chat
+        else:  # don't reply to replies to own messages in the PROXY_TO chat
             return HTTPResponse()
     elif txt == '/myid':
         msg = f'Your ID: {user_id}. Chat ID: {chat_id}'
