@@ -17,10 +17,6 @@ async def health(request):
     })
 
 
-async def send_incorrect_message(to: int, msg: str) -> None:
-    await send_msg(chat_id=to, msg=msg)
-
-
 async def send_to_user(txt: str):
     """
     txt must be in the form of:
