@@ -1,5 +1,6 @@
 .env
 .idea
 *.pyc
+*.sql
 
 secrets/bot_api_key

@@ -1,5 +1,6 @@
 import os
 
+import aiosqlite as aiosqlite
 import httpx
 from sanic import Sanic, json
 from sanic.log import logger
@@ -19,7 +20,7 @@ async def register_webhook():
 
 
 @app.before_server_start
-async def sanity_check(*args):
+async def sanity_check(*args):  # noqa
     required_vars = ('TG_BASE_URL', 'CALLBACK_URL_BASE', 'PROXY_TO')
     bot_key = os.path.exists('/run/secrets/BOT_API_KEY')
     if not all([os.environ.get(var) for var in required_vars]) or not bot_key:
@@ -29,7 +30,7 @@ async def sanity_check(*args):
 
 
 @app.before_server_start
-async def set_webhook(*args):
+async def set_webhook(*args):  # noqa
     url = await bot_url() + 'setWebhook'
     wh = await webhook()
     async with httpx.AsyncClient() as client:
@@ -39,6 +40,21 @@ async def set_webhook(*args):
             await register_webhook()
         else:
             logger.error(f'Bad response from Telegram: {response.content}')
+
+
+@app.before_server_start
+async def db_setup(*args):  # noqa
+    async with aiosqlite.connect('bot/db.sql') as db:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bans 
+            (
+                tg_id INTEGER PRIMARY KEY,
+                ban_timestamp INTEGER NOT NULL
+            );
+            """
+        )
+        await db.commit()
 
 
 app.add_route(lambda _: json({}), '/')

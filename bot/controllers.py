@@ -1,7 +1,9 @@
 import os
+from datetime import datetime
 
+import aiosqlite
 import ujson
-from sanic import json, HTTPResponse
+from sanic import json, HTTPResponse, Request
 from sanic.log import logger
 
 from bot.senders import send_msg, forward_msg
@@ -9,7 +11,7 @@ from bot.senders import send_msg, forward_msg
 proxy_to = int(os.environ.get('PROXY_TO'))
 
 
-async def health(request):
+async def health(request: Request) -> json:
     return json({
         'api': True,
         'updates_callback': True if request.app.ctx.tg_webhook else False,
@@ -17,7 +19,7 @@ async def health(request):
     })
 
 
-async def send_to_user(txt: str):
+async def send_to_user(txt: str) -> None:
     """
     txt must be in the form of:
     send || 90422868 || some message
@@ -34,7 +36,26 @@ async def send_to_user(txt: str):
     await send_msg(chat_id=int(cmd[1]), msg=cmd[2])
 
 
-async def updates(request):
+async def ban_user(txt: str) -> None:
+    cmd = [e.strip() for e in txt.split('||')]
+    if (not len(cmd) == 2) or (not cmd[0].lower() == 'ban') or (not cmd[1].isnumeric()):
+        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
+                                              f' ban || <user id>'))
+        return
+    async with aiosqlite.connect('bot/db.sql') as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO bans (tg_id, ban_timestamp) VALUES (?, ?)",
+            (cmd[1], int(datetime.now().timestamp()))
+        )
+        await db.commit()
+    await send_msg(chat_id=proxy_to, msg=f'User {cmd[1]} is now banned.')
+
+
+async def show_bans() -> None:
+    pass  # TODO
+
+
+async def updates(request) -> HTTPResponse:
     try:
         message = request.json['message']
     except KeyError:  # we currently don't handle message edits, new chat members, kick notifications etc.
@@ -44,12 +65,22 @@ async def updates(request):
         return HTTPResponse()  # dismiss bots
 
     user_id = message['from']['id']
+    async with aiosqlite.connect('bot/db.sql') as db:
+        async with db.execute(
+                "SELECT EXISTS(SELECT 1 from bans where tg_id=?) limit 1;", (user_id, )
+        ) as cursor:
+            if cursor[0] == 1:
+                return HTTPResponse()  # ignore banned user
     chat_id = message['chat']['id']
     txt = message.get('text')
 
-    if chat_id == proxy_to:
-        if 'send' in txt.lower():
+    if chat_id == proxy_to and txt:
+        if txt.lower().startswith('send'):
             await send_to_user(txt)
+        elif txt.lower().startswith('ban'):
+            await ban_user(txt)
+        elif txt.lower().startswith('showbans'):
+            await show_bans()
         else:  # don't reply to replies to own messages in the PROXY_TO chat
             return HTTPResponse()
     elif txt == '/myid':

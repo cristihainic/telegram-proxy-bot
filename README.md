@@ -7,8 +7,8 @@ A bot to receive and send messages on Telegram without revealing your identity t
 ### Features
 This bot:
 - forwards all messages it receives to a chat (DM or group chat) of your liking;
-- sends the user messages back without revealing your identity.
-- **NO** persistent storage of user information --> **NO** GDPR issues.
+- proxies messages back to users without revealing your identity.
+- does **not** store messages.
 
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
