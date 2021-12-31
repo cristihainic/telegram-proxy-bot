@@ -5,6 +5,7 @@ import httpx
 from sanic import Sanic, json
 from sanic.log import logger
 
+from bot.caching import CACHE
 from bot.configs import bot_url, webhook, api_key
 from bot.controllers import health, updates
 
@@ -43,7 +44,7 @@ async def set_webhook(*args):  # noqa
 
 
 @app.before_server_start
-async def db_setup(*args):  # noqa
+async def storage_setup(*args):  # noqa
     async with aiosqlite.connect('bot/db.sql') as db:
         await db.execute(
             """
@@ -55,6 +56,14 @@ async def db_setup(*args):  # noqa
             """
         )
         await db.commit()
+
+        # also sync cache to DB
+        ban_list = []
+        async with db.execute("SELECT tg_id FROM bans") as cursor:
+            async for row in cursor:
+                ban_list.append(row[0])
+        CACHE['ban_list'] = ban_list
+        CACHE['synced'] = True
 
 
 app.add_route(lambda _: json({}), '/')
