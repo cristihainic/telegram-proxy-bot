@@ -1,7 +1,4 @@
-"""
-Have multiple-line SQL or queries that are used often here. Single-line SQL or one-off queries can
- go straight into code.
-"""
+"""Have multiple-line SQL or queries that are used often here. Single-line SQL can go straight into code."""
 
 CREATE_BANS_TABLE = (
     """

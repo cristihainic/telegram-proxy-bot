@@ -47,7 +47,7 @@ async def ban_user(txt: str) -> None:
     user_id = int(cmd[1])
     async with aiosqlite.connect('bot/db.sql') as db:
         await db.execute(
-            "INSERT OR IGNORE INTO bans (tg_id, ban_timestamp) VALUES (?, ?)",
+            "INSERT OR IGNORE INTO bans (tg_id, ban_timestamp) VALUES (?, ?);",
             (user_id, int(datetime.now().timestamp()))
         )
         await db.commit()
@@ -64,16 +64,16 @@ async def unban_user(txt: str) -> None:
     user_id = int(cmd[1])
     async with aiosqlite.connect('bot/db.sql') as db:
         async with db.execute("DELETE FROM bans WHERE tg_id=?;", (user_id, )) as cursor:
-            row_count = await cursor.rowcount
+            row_count = cursor.rowcount
+            await db.commit()
             found = True if row_count > 0 else False
     if not found:
         await send_msg(chat_id=proxy_to, msg=f'User {user_id} not found in the banned users list.')
         return
-    if CACHE['synced']:
-        try:
-            CACHE['ban_list'].remove(user_id)
-        except ValueError:
-            logger.error(f'Cache out of sync with DB, could not find tg_id {user_id}')
+    try:
+        CACHE['ban_list'].remove(user_id)
+    except ValueError:
+        logger.error(f'Cache out of sync with DB, could not find tg_id {user_id}. Restart the service to do a sync.')
     await send_msg(chat_id=proxy_to, msg=f'User {user_id} is now unbanned.')
 
 
