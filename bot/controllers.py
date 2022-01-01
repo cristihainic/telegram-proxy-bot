@@ -110,7 +110,7 @@ async def updates(request: Request) -> HTTPResponse:
         async with aiosqlite.connect('bot/db.sql') as db:
             async with db.execute(
                     "SELECT EXISTS(SELECT 1 FROM bans WHERE tg_id=?) LIMIT 1;", (user_id, )) as cursor:
-                if cursor.fetchone()[0] == 1:
+                if (await cursor.fetchone())[0] == 1:
                     return HTTPResponse()
     chat_id = message['chat']['id']
     txt = message.get('text')

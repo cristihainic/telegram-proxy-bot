@@ -8,7 +8,7 @@ from sanic.log import logger
 from bot.caching import CACHE
 from bot.configs import bot_url, webhook, api_key
 from bot.controllers import health, updates
-
+from bot.sql import CREATE_BANS_TABLE
 
 app = Sanic('TGProxyBot')
 
@@ -46,15 +46,7 @@ async def set_webhook(*args):  # noqa
 @app.before_server_start
 async def storage_setup(*args):  # noqa
     async with aiosqlite.connect('bot/db.sql') as db:
-        await db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS bans 
-            (
-                tg_id INTEGER PRIMARY KEY,
-                ban_timestamp INTEGER NOT NULL
-            );
-            """
-        )
+        await db.execute(CREATE_BANS_TABLE)
         await db.commit()
 
         # also sync cache to DB
