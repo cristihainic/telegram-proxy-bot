@@ -62,11 +62,12 @@ app.add_route(lambda _: json({}), '/')
 app.add_route(health, '/health', methods=['GET'])
 
 
-app.run(
-    host=os.environ.get('HOST'),
-    port=os.environ.get('PORT'),
-    debug=bool(int(os.environ.get('DEBUG'))),
-    auto_reload=bool(int(os.environ.get('AUTO_RELOAD'))),
-    workers=int(os.environ.get('WORKERS')),
-    access_log=bool(int(os.environ.get('ACCESS_LOG')))
-)
+if __name__ == '__main__':
+    app.run(
+        host=os.environ.get('HOST'),
+        port=os.environ.get('PORT'),
+        debug=bool(int(os.environ.get('DEBUG'))),
+        auto_reload=bool(int(os.environ.get('AUTO_RELOAD'))),
+        workers=int(os.environ.get('WORKERS')),
+        access_log=bool(int(os.environ.get('ACCESS_LOG')))
+    )
