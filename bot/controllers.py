@@ -24,25 +24,25 @@ async def health(request: Request) -> json:
 async def send_to_user(txt: str) -> None:
     """
     txt must be in the form of:
-    send || 90422868 || some message
+    send | 90422868 | some message
     where:
     send - command to route the message to this coroutine
     90422868 - the chat_id to which to send the message
     some message - the message to be sent by the bot
     """
-    cmd = [e.strip() for e in txt.split('||')]
+    cmd = [e.strip() for e in txt.split('|')]
     if (not len(cmd) == 3) or (not cmd[0].lower() == 'send') or (not cmd[1].isnumeric()):
         await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' send || <chat_id> || <your_message_here>'))
+                                              f' send | <chat_id> | <your_message_here>'))
         return
     await send_msg(chat_id=int(cmd[1]), msg=cmd[2])
 
 
 async def ban_user(txt: str) -> None:
-    cmd = [e.strip() for e in txt.split('||')]
+    cmd = [e.strip() for e in txt.split('|')]
     if (not len(cmd) == 2) or (not cmd[0].lower() == 'ban') or (not cmd[1].isnumeric()):
         await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' ban || <user id>'))
+                                              f' ban | <user id>'))
         return
     user_id = int(cmd[1])
     async with aiosqlite.connect('bot/db.sql') as db:
@@ -56,10 +56,10 @@ async def ban_user(txt: str) -> None:
 
 
 async def unban_user(txt: str) -> None:
-    cmd = [e.strip() for e in txt.split('||')]
+    cmd = [e.strip() for e in txt.split('|')]
     if (not len(cmd) == 2) or (not cmd[0].lower() == 'unban') or (not cmd[1].isnumeric()):
         await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' unban || <user id>'))
+                                              f' unban | <user id>'))
         return
     user_id = int(cmd[1])
     async with aiosqlite.connect('bot/db.sql') as db:
