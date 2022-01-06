@@ -1,12 +1,14 @@
 import os
 
+import aiosqlite as aiosqlite
 import httpx
 from sanic import Sanic, json
 from sanic.log import logger
 
+from bot.caching import CACHE
 from bot.configs import bot_url, webhook, api_key
 from bot.controllers import health, updates
-
+from bot.sql import CREATE_BANS_TABLE
 
 app = Sanic('TGProxyBot')
 
@@ -19,7 +21,7 @@ async def register_webhook():
 
 
 @app.before_server_start
-async def sanity_check(*args):
+async def sanity_check(*args):  # noqa
     required_vars = ('TG_BASE_URL', 'CALLBACK_URL_BASE', 'PROXY_TO')
     bot_key = os.path.exists('/run/secrets/BOT_API_KEY')
     if not all([os.environ.get(var) for var in required_vars]) or not bot_key:
@@ -29,7 +31,7 @@ async def sanity_check(*args):
 
 
 @app.before_server_start
-async def set_webhook(*args):
+async def set_webhook(*args):  # noqa
     url = await bot_url() + 'setWebhook'
     wh = await webhook()
     async with httpx.AsyncClient() as client:
@@ -41,15 +43,31 @@ async def set_webhook(*args):
             logger.error(f'Bad response from Telegram: {response.content}')
 
 
+@app.before_server_start
+async def storage_setup(*args):  # noqa
+    async with aiosqlite.connect('bot/db.sql') as db:
+        await db.execute(CREATE_BANS_TABLE)
+        await db.commit()
+
+        # also sync cache to DB
+        ban_list = []
+        async with db.execute("SELECT tg_id FROM bans") as cursor:
+            async for row in cursor:
+                ban_list.append(row[0])
+        CACHE['ban_list'] = ban_list
+        CACHE['synced'] = True
+
+
 app.add_route(lambda _: json({}), '/')
 app.add_route(health, '/health', methods=['GET'])
 
 
-app.run(
-    host=os.environ.get('HOST'),
-    port=os.environ.get('PORT'),
-    debug=bool(int(os.environ.get('DEBUG'))),
-    auto_reload=bool(int(os.environ.get('AUTO_RELOAD'))),
-    workers=int(os.environ.get('WORKERS')),
-    access_log=bool(int(os.environ.get('ACCESS_LOG')))
-)
+if __name__ == '__main__':
+    app.run(
+        host=os.environ.get('HOST'),
+        port=os.environ.get('PORT'),
+        debug=bool(int(os.environ.get('DEBUG'))),
+        auto_reload=bool(int(os.environ.get('AUTO_RELOAD'))),
+        workers=int(os.environ.get('WORKERS')),
+        access_log=bool(int(os.environ.get('ACCESS_LOG')))
+    )
