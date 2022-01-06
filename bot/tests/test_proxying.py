@@ -32,7 +32,7 @@ async def test_proxy_from_success(mocker):
 
     msg = tg_updates_request_channel_dm()
     msg['message']['chat']['id'] = proxy_to
-    msg['message']['text'] = 'Send||90422868 || some message'
+    msg['message']['text'] = 'Send|90422868 | some message'
     request = MockedUpdateRequest(msg=msg)
 
     resp = await updates(request)
@@ -47,13 +47,13 @@ async def test_proxy_from_failure(mocker):
 
     msg = tg_updates_request_channel_dm()
     msg['message']['chat']['id'] = proxy_to
-    msg['message']['text'] = 'send || text instead of id :0 || some message'
+    msg['message']['text'] = 'send | text instead of id :0 | some message'
     request = MockedUpdateRequest(msg=msg)
 
     resp = await updates(request)
     assert resp.status == 201
 
-    error_msg = ('Incorrect message received: "send || text instead of id :0 || some message". '
-                 'Expecting something in the form: send || <chat_id> || <your_message_here>')
+    error_msg = ('Incorrect message received: "send | text instead of id :0 | some message". '
+                 'Expecting something in the form: send | <chat_id> | <your_message_here>')
 
     mocked_send.assert_called_once_with(chat_id=proxy_to, msg=error_msg)

@@ -40,12 +40,12 @@ Then, the actual forwarded message ensues.
 The Telegram ID above is the unique identifier of a user throughout the app. To have the bot send a reply to a user, **reply** to any of the bot's messages or forwards with this:
 
 ```
-send || <user id> || <your message here>
+send | <user id> | <your message here>
 ```
 
 So, if we wanted to send a message back to John Smith, we'd **reply to any** of the bot's messages with:
 ```
-send || 19612312371 || Hi John, nice to meet you. You have no idea who's behind this bot.
+send | 19612312371 | Hi John, nice to meet you. You have no idea who's behind this bot.
 ```
 
 John will then receive the message from the bot.
@@ -53,7 +53,7 @@ John will then receive the message from the bot.
 #### Banning users
 If you want the bot to ignore messages from certain users (spammers etc), reply to any of its messages with this command:
 ```
-ban || <user id>
+ban | <user id>
 ```
 
 The bot will send you a message of this sort:
@@ -64,7 +64,7 @@ User <user id> is now banned.
 #### Unbanning users
 Reply to any of the bot's messages with:
 ```
-unban || <user id>
+unban | <user id>
 ```
 to unban a user. The bot will send back a message of this sort:
 ```

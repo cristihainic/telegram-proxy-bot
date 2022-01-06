@@ -12,7 +12,7 @@ async def test_ban_command_adds_user_to_db_and_cache(mocker):
     mocked_send = mocker.patch('bot.controllers.send_msg')
     request = MockedUpdateRequest()
     message = request.json['message']
-    message['text'] = 'ban || 1234567890'
+    message['text'] = 'ban | 1234567890'
     message['chat']['id'] = int(os.environ.get('PROXY_TO'))
 
     resp = await updates(request)
@@ -62,7 +62,7 @@ async def test_unban_command_removed_user_from_db_and_cache(mocker):
     mocked_send = mocker.patch('bot.controllers.send_msg')
     request = MockedUpdateRequest()
     message = request.json['message']
-    message['text'] = 'unban || 1234567890'
+    message['text'] = 'unban | 1234567890'
     message['chat']['id'] = int(os.environ.get('PROXY_TO'))
 
     resp = await updates(request)
