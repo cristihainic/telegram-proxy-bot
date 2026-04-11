@@ -2,8 +2,8 @@ import os
 from datetime import datetime
 
 import aiosqlite
-import ujson
-from sanic import json, HTTPResponse, Request
+import json
+from sanic import json as sanic_json, HTTPResponse, Request
 from sanic.log import logger
 
 from bot.caching import CACHE
@@ -13,8 +13,8 @@ proxy_to = int(os.environ.get('PROXY_TO'))
 preflight = os.environ.get('PREFLIGHT', '1') == '1'
 
 
-async def health(request: Request) -> json:
-    return json({
+async def health(request: Request) -> sanic_json:
+    return sanic_json({
         'api': True,
         'telegram_callback': True if request.app.ctx.tg_webhook else False,
         'db': os.path.isfile('bot/db.sql'),
@@ -139,7 +139,8 @@ async def updates(request: Request) -> HTTPResponse:
             await send_msg(chat_id=user_id, msg=start_reply, reply_to=message['message_id'])
     else:
         if preflight:
-            await send_msg(chat_id=proxy_to, msg=f"Incoming message from: {ujson.dumps(message['from'])}")
+            sender = json.dumps(message['from'], separators=(',', ':'))
+            await send_msg(chat_id=proxy_to, msg=f"Incoming message from: {sender}")
         await forward_msg(chat_id=proxy_to, from_chat_id=chat_id, message_id=message['message_id'])
 
     return HTTPResponse(status=201)

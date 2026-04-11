@@ -1,13 +1,15 @@
-FROM python:3.9
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH /proxybot
+FROM python:3.13-slim
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/proxybot
 WORKDIR /proxybot
-ARG REQS_FILE=requirements.txt
-COPY requirements.txt /proxybot/
-COPY requirements-dev.txt /proxybot/
-COPY setup.cfg /proxybot/
-RUN pip install -r $REQS_FILE
+COPY . /proxybot/
+ARG INSTALL_DEV=false
+RUN if [ "$INSTALL_DEV" = "true" ]; then \
+        pip install ".[dev]"; \
+    else \
+        pip install .; \
+    fi && \
+    rm -rf build/
 EXPOSE 80
 
-CMD python bot/app.py
-
+CMD ["python", "bot/app.py"]

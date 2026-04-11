@@ -1,8 +1,9 @@
-version: '3.7'
-
 services:
   bot:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "false"
     expose:
       - 8000
     ports:

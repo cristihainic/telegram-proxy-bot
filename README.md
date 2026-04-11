@@ -18,7 +18,7 @@ This bot:
     printf "123asd-mybotkey-blabla" > secrets/bot_api_key
     ```
 3. `cp .env.template .env` and modify the latter to your liking;
-4. `docker-compose up` and profit.
+4. `docker compose up` and profit.
 
 ### Experience the proxy bot awesomeness
 #### Receiving messages 
@@ -84,8 +84,8 @@ Banned users: <a list of banned users>
 ### Development
 Contributions are welcome! 
 
-When developing, build the project with the `REQS_FILE` build argument set to `requirements-dev.txt` e.g, 
+When developing, build the project with the `INSTALL_DEV` build argument set to `true` e.g, 
 
-```docker-compose build --build-arg REQS_FILE=requirements-dev.txt```
+```docker compose build --build-arg INSTALL_DEV=true```
 
 Feel free to work on any of the known issues / change requests or open a new one [here](https://github.com/cristihainic/telegram-proxy-bot/issues).

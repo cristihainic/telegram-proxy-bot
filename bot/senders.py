@@ -1,5 +1,3 @@
-from typing import Union, Optional
-
 import httpx
 from sanic.log import logger
 
@@ -14,7 +12,7 @@ async def send_command(url: str, data: dict) -> None:
     return
 
 
-async def send_msg(chat_id: Union[str, int], msg: str, reply_to: Optional[int] = None):
+async def send_msg(chat_id: str | int, msg: str, reply_to: int | None = None):
     url = await bot_url() + 'sendMessage'
     data = {
         'chat_id': chat_id,
@@ -25,7 +23,7 @@ async def send_msg(chat_id: Union[str, int], msg: str, reply_to: Optional[int] =
     await send_command(url, data)
 
 
-async def forward_msg(chat_id: Union[str, int], from_chat_id: Union[str, int], message_id: int):
+async def forward_msg(chat_id: str | int, from_chat_id: str | int, message_id: int):
     url = await bot_url() + 'forwardMessage'
     data = {
         'chat_id': chat_id,

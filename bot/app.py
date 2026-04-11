@@ -11,13 +11,11 @@ from bot.controllers import health, updates
 from bot.sql import CREATE_BANS_TABLE
 
 app = Sanic('TGProxyBot')
+app.config.FALLBACK_ERROR_FORMAT = "text"
 
 
 async def register_webhook():
-    app.router.reset()
     app.add_route(updates, app.ctx.tg_webhook, methods=['POST'])
-    app.router.finalize()
-    return
 
 
 @app.before_server_start
