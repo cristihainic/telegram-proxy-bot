@@ -1,7 +1,7 @@
 import os
 
 from bot.controllers import updates
-from bot.tests.test_utils.telegram_requests import MockedUpdateRequest, tg_updates_request_channel_dm
+from bot.tests.test_utils.telegram_requests import MockedUpdateRequest
 
 proxy_to = int(os.environ.get('PROXY_TO'))
 
@@ -18,9 +18,12 @@ async def test_proxy_to(mocker):
 
     assert resp.status == 201
 
-    msg = ('Incoming message from: {"id":90422868,"is_bot":false,"first_name":"John","last_name":"Smith",'
-           '"username":"Js66"}')
-    mocked_send.assert_called_once_with(chat_id=proxy_to, msg=msg)
+    # Pre-flight uses readable format + inline keyboard
+    mocked_send.assert_called_once()
+    call = mocked_send.call_args
+    assert call.kwargs['chat_id'] == proxy_to
+    assert call.kwargs['msg'] == 'From: John Smith (@Js66)\nID: 90422868'
+    assert 'reply_markup' in call.kwargs
 
     mocked_fwd.assert_called_once_with(
         chat_id=proxy_to, from_chat_id=message['chat']['id'], message_id=message['message_id']
@@ -39,41 +42,7 @@ async def test_proxy_to_without_preflight(mocker, monkeypatch):
     resp = await updates(request)
 
     assert resp.status == 201
-
     mocked_send.assert_not_called()
-
     mocked_fwd.assert_called_once_with(
         chat_id=proxy_to, from_chat_id=message['chat']['id'], message_id=message['message_id']
     )
-
-
-async def test_proxy_from_success(mocker):
-    mocked_send = mocker.patch('bot.controllers.send_msg')
-
-    msg = tg_updates_request_channel_dm()
-    msg['message']['chat']['id'] = proxy_to
-    msg['message']['text'] = 'Send|90422868 | some message'
-    request = MockedUpdateRequest(msg=msg)
-
-    resp = await updates(request)
-
-    assert resp.status == 201
-
-    mocked_send.assert_called_once_with(chat_id=90422868, msg='some message')
-
-
-async def test_proxy_from_failure(mocker):
-    mocked_send = mocker.patch('bot.controllers.send_msg')
-
-    msg = tg_updates_request_channel_dm()
-    msg['message']['chat']['id'] = proxy_to
-    msg['message']['text'] = 'send | text instead of id :0 | some message'
-    request = MockedUpdateRequest(msg=msg)
-
-    resp = await updates(request)
-    assert resp.status == 201
-
-    error_msg = ('Incorrect message received: "send | text instead of id :0 | some message". '
-                 'Expecting something in the form: send | <chat_id> | <your_message_here>')
-
-    mocked_send.assert_called_once_with(chat_id=proxy_to, msg=error_msg)

@@ -50,8 +50,41 @@ async def test_existing_data_persisted():
     async with aiosqlite.connect('bot/db.sql') as db:
         async with db.execute("SELECT tg_id from bans;") as cursor:
             result = await cursor.fetchall()
-            ids = []
-            for r in result:
-                ids.append(r[0])
+            ids = [r[0] for r in result]
 
     assert ids == [123, 234, 345]
+
+
+async def test_migration_adds_name_columns():
+    """Simulates an existing DB with the old 2-column schema; storage_setup should
+    add the new columns without dropping existing rows."""
+    # Remove the conftest-created DB and recreate with old schema
+    os.remove('bot/db.sql')
+    async with aiosqlite.connect('bot/db.sql') as db:
+        await db.execute(
+            "CREATE TABLE bans (tg_id INTEGER PRIMARY KEY, ban_timestamp INTEGER NOT NULL);"
+        )
+        await db.execute("INSERT INTO bans (tg_id, ban_timestamp) VALUES (?, ?);", (555, 12345))
+        await db.commit()
+
+    await storage_setup()
+
+    # Verify new columns exist and old row is still there with NULL name columns
+    async with aiosqlite.connect('bot/db.sql') as db:
+        async with db.execute(
+            "SELECT tg_id, ban_timestamp, first_name, last_name, username FROM bans WHERE tg_id=555;"
+        ) as cursor:
+            row = await cursor.fetchone()
+    assert row == (555, 12345, None, None, None)
+
+
+async def test_migration_idempotent():
+    """Running storage_setup multiple times should not fail."""
+    await storage_setup()
+    await storage_setup()
+    await storage_setup()
+    # Verify schema is intact
+    async with aiosqlite.connect('bot/db.sql') as db:
+        async with db.execute("PRAGMA table_info(bans);") as cursor:
+            cols = [row[1] async for row in cursor]
+    assert set(cols) == {'tg_id', 'ban_timestamp', 'first_name', 'last_name', 'username'}

@@ -1,6 +1,6 @@
 import os
 
-import aiosqlite as aiosqlite
+import aiosqlite
 import httpx
 from sanic import Sanic, json
 from sanic.log import logger
@@ -8,7 +8,8 @@ from sanic.log import logger
 from bot.caching import CACHE
 from bot.configs import bot_url, webhook, api_key
 from bot.controllers import health, updates
-from bot.sql import CREATE_BANS_TABLE
+from bot.senders import set_my_commands
+from bot.sql import CREATE_BANS_TABLE, MIGRATE_BANS_TABLE
 
 app = Sanic('TGProxyBot')
 app.config.FALLBACK_ERROR_FORMAT = "text"
@@ -46,14 +47,41 @@ async def storage_setup(*args):  # noqa
     async with aiosqlite.connect('bot/db.sql') as db:
         await db.execute(CREATE_BANS_TABLE)
         await db.commit()
+        for stmt in MIGRATE_BANS_TABLE:
+            try:
+                await db.execute(stmt)
+            except aiosqlite.OperationalError as exc:
+                if 'duplicate column name' not in str(exc).lower():
+                    raise
+        await db.commit()
 
-        # also sync cache to DB
         ban_list = []
         async with db.execute("SELECT tg_id FROM bans") as cursor:
             async for row in cursor:
                 ban_list.append(row[0])
         CACHE['ban_list'] = ban_list
         CACHE['synced'] = True
+
+
+@app.before_server_start
+async def register_commands(*args):  # noqa
+    try:
+        await set_my_commands(
+            commands=[
+                {'command': 'ban', 'description': 'Ban a user: /ban <id>'},
+                {'command': 'unban', 'description': 'Unban a user: /unban <id>'},
+                {'command': 'bans', 'description': 'List banned users'},
+            ],
+            scope={'type': 'chat', 'chat_id': int(os.environ.get('PROXY_TO'))},
+        )
+        await set_my_commands(
+            commands=[
+                {'command': 'start', 'description': 'Greet the bot'},
+                {'command': 'myid', 'description': 'Get your Telegram user ID'},
+            ],
+        )
+    except Exception as exc:  # noqa: BLE001 — non-fatal; bot still works without the / menu
+        logger.error(f'Failed to register slash commands: {exc}')
 
 
 app.add_route(lambda _: json({}), '/')

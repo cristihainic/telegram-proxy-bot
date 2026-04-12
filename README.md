@@ -7,8 +7,11 @@ A bot to receive and send messages on Telegram without revealing your identity t
 ### Features
 This bot:
 - forwards all messages it receives to a chat (DM or group chat) of your liking;
-- proxies messages back to users without revealing your identity.
-- does **not** store messages.
+- proxies messages back to users without revealing your identity;
+- supports **any message type** for replies — text, photos, documents, audio, voice, video, stickers;
+- provides **inline buttons** (Reply, Ban) on each incoming message for single-tap handling;
+- exposes operator commands via Telegram's native `/` menu;
+- does **not** store the content of messages it proxies - no GDPR hassle.
 
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
@@ -22,63 +25,38 @@ This bot:
 
 ### Experience the proxy bot awesomeness
 #### Receiving messages 
-To allow you to reply to users and to bypass some annoying Telegram behavior (e.g., no "Forwarded from..." message is included if a user sends you an audio files, leaving you clueless as to _who_ sent the message), the bot will send "pre-flight" messages for all messages it proxies to you. These pre-flight messages include the details of the sender, in the form of:
-```
-Incoming message from: 
-{
-    "id": 19612312371,
-    "is_bot":false,
-    "first_name":"John",
-    "last_name":"Smith",
-    "username":"JS666",
-    "language_code":"en"
-}
-```
-Then, the actual forwarded message ensues.
-
-#### Sending messages
-The Telegram ID above is the unique identifier of a user throughout the app. To have the bot send a reply to a user, **reply** to any of the bot's messages or forwards with this:
+To allow you to reply to users and to bypass some annoying Telegram behavior (e.g., no "Forwarded from..." header is included if a user sends you an audio file), the bot sends a "pre-flight" message before every proxied message. The pre-flight shows the sender's name and ID, with two inline buttons:
 
 ```
-send | <user id> | <your message here>
+From: John Smith (@JS666)
+ID: 19612312371
+[Reply]  [Ban]
 ```
 
-So, if we wanted to send a message back to John Smith, we'd **reply to any** of the bot's messages with:
-```
-send | 19612312371 | Hi John, nice to meet you. You have no idea who's behind this bot.
-```
+Then the actual forwarded message follows.
 
-John will then receive the message from the bot.
+You can disable pre-flight messages entirely by setting `PREFLIGHT=0` in your `.env` (note: this also hides the Reply/Ban buttons).
 
-#### Banning users
-If you want the bot to ignore messages from certain users (spammers etc), reply to any of its messages with this command:
+#### Replying to messages
+Tap **Reply** on any pre-flight message. Telegram shows a toast:
 ```
-ban | <user id>
+Replying to John Smith (@JS666). Send your next message.
 ```
+Your next message in the PROXY_TO chat — **any type**: text, photo, document, audio, voice, video, sticker — will be delivered to the user as if sent by the bot. A confirmation `✓ Sent to John` is posted in the group.
 
-The bot will send you a message of this sort:
-```
-User <user id> is now banned.
-```
+If you don't send anything within 10 minutes, the pending reply state auto-expires.
 
-#### Unbanning users
-Reply to any of the bot's messages with:
-```
-unban | <user id>
-```
-to unban a user. The bot will send back a message of this sort:
-```
-User <user id> is now unbanned.
-```
+#### Banning, unbanning, listing bans
+Operator commands appear in Telegram's `/` menu inside the PROXY_TO chat:
 
-#### Show all banned users
-Reply to any of the bot's messages with:
+- **`/ban <user_id>`** — ban a user by ID. (You can also tap the **Ban** button on a pre-flight message.)
+- **`/unban <user_id>`** — unban a user.
+- **`/bans`** — list all banned users with names and ban dates:
+
 ```
-showbans
-```
-The bot will send a message of this sort:
-```
-Banned users: <a list of banned users>
+Banned users:
+• John Smith (@JS666) — ID 19612312371 — 2026-04-12
+• Jane Doe — ID 98765 — 2026-04-10
 ```
 
 ### Development
