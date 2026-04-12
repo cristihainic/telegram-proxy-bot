@@ -12,7 +12,7 @@ from bot.tests.test_utils.telegram_requests import (
 proxy_to = int(os.environ.get('PROXY_TO'))
 
 
-async def test_preflight_includes_buttons(mocker):
+async def test_action_bar_includes_buttons(mocker):
     mocked_send = mocker.patch('bot.controllers.send_msg')
     mocker.patch('bot.controllers.forward_msg')
 
@@ -24,7 +24,7 @@ async def test_preflight_includes_buttons(mocker):
 
     call = mocked_send.call_args
     assert call.kwargs['chat_id'] == proxy_to
-    assert call.kwargs['msg'] == 'From: John Smith (@Js66)\nID: 90422868'
+    assert call.kwargs['msg'] == 'ID: 90422868'
     assert call.kwargs['reply_markup'] == {
         'inline_keyboard': [[
             {'text': 'Reply', 'callback_data': 'r:90422868'},
@@ -33,7 +33,23 @@ async def test_preflight_includes_buttons(mocker):
     }
 
 
-async def test_preflight_caches_sender_info(mocker):
+async def test_forward_sent_before_action_bar(mocker):
+    """Content-first layout: forward first, action bar second."""
+    manager = mocker.MagicMock()
+    manager.attach_mock(mocker.patch('bot.controllers.forward_msg'), 'fwd')
+    manager.attach_mock(mocker.patch('bot.controllers.send_msg'), 'send')
+
+    request = MockedUpdateRequest()
+    request.json['message']['text'] = 'Proxy me.'
+
+    await updates(request)
+
+    # First call should be forward_msg, second should be send_msg
+    assert manager.mock_calls[0][0] == 'fwd'
+    assert manager.mock_calls[1][0] == 'send'
+
+
+async def test_sender_info_cached_for_button_callbacks(mocker):
     mocker.patch('bot.controllers.send_msg')
     mocker.patch('bot.controllers.forward_msg')
 
@@ -44,6 +60,23 @@ async def test_preflight_caches_sender_info(mocker):
     await updates(request)
 
     assert CACHE['name_cache'][90422868] == message['from']
+
+
+async def test_sender_info_cached_even_without_preflight(mocker, monkeypatch):
+    """With PREFLIGHT=0, no action bar is sent, but sender info should still be cached
+    so that manual /ban commands can populate the name."""
+    monkeypatch.setattr('bot.controllers.preflight', False)
+    mocked_send = mocker.patch('bot.controllers.send_msg')
+    mocker.patch('bot.controllers.forward_msg')
+
+    request = MockedUpdateRequest()
+    message = request.json['message']
+    message['text'] = 'Proxy me.'
+
+    await updates(request)
+
+    assert CACHE['name_cache'][90422868] == message['from']
+    mocked_send.assert_not_called()
 
 
 async def test_callback_reply_sets_target(mocker):

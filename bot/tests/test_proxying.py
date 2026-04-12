@@ -18,16 +18,17 @@ async def test_proxy_to(mocker):
 
     assert resp.status == 201
 
-    # Pre-flight uses readable format + inline keyboard
-    mocked_send.assert_called_once()
-    call = mocked_send.call_args
-    assert call.kwargs['chat_id'] == proxy_to
-    assert call.kwargs['msg'] == 'From: John Smith (@Js66)\nID: 90422868'
-    assert 'reply_markup' in call.kwargs
-
+    # Forward comes first (content-first layout)
     mocked_fwd.assert_called_once_with(
         chat_id=proxy_to, from_chat_id=message['chat']['id'], message_id=message['message_id']
     )
+
+    # Action bar with ID + inline keyboard follows
+    mocked_send.assert_called_once()
+    call = mocked_send.call_args
+    assert call.kwargs['chat_id'] == proxy_to
+    assert call.kwargs['msg'] == 'ID: 90422868'
+    assert 'reply_markup' in call.kwargs
 
 
 async def test_proxy_to_without_preflight(mocker, monkeypatch):

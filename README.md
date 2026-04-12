@@ -2,16 +2,25 @@
 
 # Telegram Proxy Bot
 
-A bot to receive and send messages on Telegram without revealing your identity to other users. 
+A self-hosted Telegram bot that turns any chat — your DMs or a shared group — into a **shared inbox**. Incoming messages from users land in your chat; your replies go out under the bot's identity. Nobody on the outside ever sees who's actually behind it.
 
-### Features
-This bot:
-- forwards all messages it receives to a chat (DM or group chat) of your liking;
-- proxies messages back to users without revealing your identity;
-- supports **any message type** for replies — text, photos, documents, audio, voice, video, stickers;
-- provides **inline buttons** (Reply, Ban) on each incoming message for single-tap handling;
-- exposes operator commands via Telegram's native `/` menu;
-- does **not** store the content of messages it proxies - no GDPR hassle.
+### Who's it for?
+
+- **Channel / Group / Forum admins** — collect message proposals, submissions, or reports from your audience. Admins discuss privately in the bot's group, then reply back to the submitter through the bot.
+- **Customer support desks** — a team of operators in a shared group handles customer DMs together. Tap **[Reply]** to route your response back to the sender; your teammates see the context and stay in sync.
+- **Community & channel admins** — field questions from your followers from one place, without exposing personal accounts or passing a phone around.
+- **Sales & leads inbox** — every prospect DM lands in your sales team's group. Any rep can pick it up; no leads fall through the cracks.
+- **Tip lines & anonymous feedback** — student-to-teacher, employee-to-HR, reader-to-editor. Senders stay anonymous if they want; operators always stay anonymous to senders.
+- **Solo privacy** — communicate with strangers (marketplace buyers, forum contacts, one-off acquaintances) without handing over your real Telegram account.
+
+### What it does
+
+- **Forwards** every incoming DM to your chosen chat — text, photos, documents, voice notes, video, stickers, anything.
+- **Single-tap Reply / Ban** — inline buttons under every incoming message. Reply once, any message type, and the user gets it from the bot. No ID copying, no command syntax.
+- **Multi-operator aware** — per-operator reply state, so teammates in a support group don't step on each other.
+- **Ban management** — `/ban <id>`, `/unban <id>`, `/bans` for a formatted list with names and dates. Slash commands appear in Telegram's built-in `/` menu.
+- **Self-hosted** — your server, your data. No per-seat pricing, no third-party vendor, no message logs in someone else's cloud.
+- **No message persistence** — the bot doesn't store message content. GDPR-friendly by design.
 
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
@@ -21,21 +30,25 @@ This bot:
     printf "123asd-mybotkey-blabla" > secrets/bot_api_key
     ```
 3. `cp .env.template .env` and modify the latter to your liking;
-4. `docker compose up` and profit.
+4. **Disable your bot's Group Privacy mode** so it can see all messages in the PROXY_TO group (needed for the Reply button flow):
+   - DM [@BotFather](https://t.me/BotFather) → `/mybots` → select your bot → **Bot Settings** → **Group Privacy** → **Turn off**
+   - If your bot is already in the group, remove it and re-add it for the privacy change to take effect
+   - Without this, Telegram only delivers slash commands and @mentions to your bot — regular operator replies will never reach it
+5. `docker compose up` and profit.
 
 ### Experience the proxy bot awesomeness
 #### Receiving messages 
-To allow you to reply to users and to bypass some annoying Telegram behavior (e.g., no "Forwarded from..." header is included if a user sends you an audio file), the bot sends a "pre-flight" message before every proxied message. The pre-flight shows the sender's name and ID, with two inline buttons:
+The bot forwards each user message into the PROXY_TO chat, then follows it with a compact action bar containing the user's ID and two inline buttons:
 
 ```
-From: John Smith (@JS666)
+[Forwarded from John Smith: "Hi there"]
 ID: 19612312371
-[Reply]  [Ban]
+  [Reply]  [Ban]
 ```
 
-Then the actual forwarded message follows.
+For users with strict forward privacy settings (where the forward header just says "Forwarded from a user"), the action bar's ID gives you a handle to identify them — and when you tap **Reply**, the confirmation toast shows their full name since the bot caches it server-side.
 
-You can disable pre-flight messages entirely by setting `PREFLIGHT=0` in your `.env` (note: this also hides the Reply/Ban buttons).
+You can disable the action bar entirely by setting `PREFLIGHT=0` in your `.env` (note: this also hides the Reply/Ban buttons — you'd only have slash commands to manage bans).
 
 #### Replying to messages
 Tap **Reply** on any pre-flight message. Telegram shows a toast:

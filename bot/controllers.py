@@ -215,17 +215,16 @@ async def updates(request: Request) -> HTTPResponse:
         if start_reply:
             await send_msg(chat_id=user_id, msg=start_reply, reply_to=message['message_id'])
     else:
+        # Always cache sender info — used by button callbacks and /ban name lookup
+        CACHE['name_cache'][user_id] = message['from']
+        await forward_msg(chat_id=proxy_to, from_chat_id=chat_id, message_id=message['message_id'])
         if preflight:
-            CACHE['name_cache'][user_id] = message['from']
-            sender_name = format_sender(message['from'])
             reply_markup = {
                 'inline_keyboard': [[
                     {'text': 'Reply', 'callback_data': f'r:{user_id}'},
                     {'text': 'Ban', 'callback_data': f'b:{user_id}'},
                 ]]
             }
-            preflight_msg = f'From: {sender_name}\nID: {user_id}'
-            await send_msg(chat_id=proxy_to, msg=preflight_msg, reply_markup=reply_markup)
-        await forward_msg(chat_id=proxy_to, from_chat_id=chat_id, message_id=message['message_id'])
+            await send_msg(chat_id=proxy_to, msg=f'ID: {user_id}', reply_markup=reply_markup)
 
     return HTTPResponse(status=201)
