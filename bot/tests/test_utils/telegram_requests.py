@@ -1,8 +1,5 @@
-from typing import Optional
-
-
 class MockedUpdateRequest:
-    def __init__(self, msg: Optional[dict] = None):
+    def __init__(self, msg: dict | None = None):
         self._json = msg
 
     @property

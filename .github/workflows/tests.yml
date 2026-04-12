@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ["3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
           mkdir secrets
           printf "123-bot-secret-456" > secrets/bot_api_key
       - name: Build
-        run: docker compose build --build-arg REQS_FILE=requirements-dev.txt
+        run: docker compose build --build-arg INSTALL_DEV=true
       - name: Lint
         run: docker compose run bot flake8 --max-line-length=120
       - name: Unit tests
