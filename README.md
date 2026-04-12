@@ -48,8 +48,6 @@ ID: 19612312371
 
 For users with strict forward privacy settings (where the forward header just says "Forwarded from a user"), the action bar's ID gives you a handle to identify them — and when you tap **Reply**, the confirmation toast shows their full name since the bot caches it server-side.
 
-You can disable the action bar entirely by setting `PREFLIGHT=0` in your `.env` (note: this also hides the Reply/Ban buttons — you'd only have slash commands to manage bans).
-
 #### Replying to messages
 Tap **Reply** on any pre-flight message. Telegram shows a toast:
 ```

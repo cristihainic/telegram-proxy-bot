@@ -62,23 +62,6 @@ async def test_sender_info_cached_for_button_callbacks(mocker):
     assert CACHE['name_cache'][90422868] == message['from']
 
 
-async def test_sender_info_cached_even_without_preflight(mocker, monkeypatch):
-    """With PREFLIGHT=0, no action bar is sent, but sender info should still be cached
-    so that manual /ban commands can populate the name."""
-    monkeypatch.setattr('bot.controllers.preflight', False)
-    mocked_send = mocker.patch('bot.controllers.send_msg')
-    mocker.patch('bot.controllers.forward_msg')
-
-    request = MockedUpdateRequest()
-    message = request.json['message']
-    message['text'] = 'Proxy me.'
-
-    await updates(request)
-
-    assert CACHE['name_cache'][90422868] == message['from']
-    mocked_send.assert_not_called()
-
-
 async def test_callback_reply_sets_target(mocker):
     mocked_answer = mocker.patch('bot.controllers.answer_callback_query')
     CACHE['name_cache'][90422868] = {
