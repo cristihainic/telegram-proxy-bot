@@ -63,7 +63,7 @@ app.add_route(health, '/health', methods=['GET'])
 if __name__ == '__main__':
     app.run(
         host=os.environ.get('HOST'),
-        port=os.environ.get('PORT'),
+        port=int(os.environ.get('PORT')),
         debug=bool(int(os.environ.get('DEBUG'))),
         auto_reload=bool(int(os.environ.get('AUTO_RELOAD'))),
         workers=int(os.environ.get('WORKERS')),
