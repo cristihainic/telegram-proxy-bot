@@ -22,7 +22,7 @@ A self-hosted Telegram bot that turns any chat — your DMs or a shared group �
 - **Self-hosted** — your server, your data. No per-seat pricing, no third-party vendor, no message logs in someone else's cloud.
 - **No message persistence** — the bot doesn't store message content. GDPR-friendly by design.
 
-### Minimal requirements
+### Server requirements
 
 This is a _very_ lightweight bot. The cheapest VPS or Raspberry Pi will do.
 
