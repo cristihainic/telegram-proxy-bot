@@ -7,7 +7,7 @@ from sanic import json as sanic_json, HTTPResponse, Request
 from sanic.log import logger
 
 from bot.caching import CACHE
-from bot.senders import send_msg, forward_msg, copy_msg, answer_callback_query
+from bot.senders import send_msg, forward_msg, copy_msg, answer_callback_query, delete_msg
 
 proxy_to = int(os.environ.get('PROXY_TO'))
 
@@ -111,14 +111,13 @@ async def list_bans() -> None:
     await send_msg(chat_id=proxy_to, msg='\n'.join(lines))
 
 
-def _pop_reply_target(operator_id: int) -> tuple[int, str] | None:
+def _pop_reply_target(operator_id: int) -> dict | None:
     entry = CACHE['reply_targets'].pop(operator_id, None)
     if not entry:
         return None
-    target_id, target_name, expires_at = entry
-    if time.time() > expires_at:
+    if time.time() > entry['expires_at']:
         return None
-    return target_id, target_name
+    return entry
 
 
 async def handle_callback_query(cq: dict) -> HTTPResponse:
@@ -137,10 +136,21 @@ async def handle_callback_query(cq: dict) -> HTTPResponse:
     target_name = format_sender(target_info) if target_info else f'user {target_id}'
 
     if action == 'r':
-        CACHE['reply_targets'][operator_id] = (
-            target_id, target_name, time.time() + REPLY_TIMEOUT_SEC
+        # Persistent in-chat reminder. Stays visible until the reply is routed
+        # (or the operator manually deletes it). Toast disappears in seconds, so this
+        # is the only durable indicator of "reply mode active for X".
+        reminder = await send_msg(
+            chat_id=proxy_to,
+            msg=f'📝 Replying to {target_name}. Send any message — auto-cancels in 10 min.'
         )
-        await answer_callback_query(cq_id, f'Replying to {target_name}. Send your next message.')
+        reminder_msg_id = (reminder or {}).get('result', {}).get('message_id')
+        CACHE['reply_targets'][operator_id] = {
+            'target_id': target_id,
+            'target_name': target_name,
+            'expires_at': time.time() + REPLY_TIMEOUT_SEC,
+            'reminder_msg_id': reminder_msg_id,
+        }
+        await answer_callback_query(cq_id, f'Replying to {target_name}')
     elif action == 'b':
         await _do_ban(user_id=target_id, user_info=target_info)
         await answer_callback_query(cq_id, f'{target_name} is now banned.')
@@ -195,13 +205,14 @@ async def updates(request: Request) -> HTTPResponse:
             # Unknown slash command — fall through
         target = _pop_reply_target(user_id)
         if target:
-            target_id, target_name = target
             await copy_msg(
-                chat_id=target_id,
+                chat_id=target['target_id'],
                 from_chat_id=proxy_to,
                 message_id=message['message_id'],
             )
-            await send_msg(chat_id=proxy_to, msg=f'✓ Sent to {target_name}')
+            await send_msg(chat_id=proxy_to, msg=f'✓ Sent to {target["target_name"]}')
+            if target.get('reminder_msg_id'):
+                await delete_msg(chat_id=proxy_to, message_id=target['reminder_msg_id'])
         # else: internal group discussion — ignore
         return HTTPResponse(status=201)
 

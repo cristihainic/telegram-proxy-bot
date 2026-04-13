@@ -6,16 +6,18 @@ from sanic.log import logger
 from bot.configs import bot_url
 
 
-async def send_command(url: str, data: dict) -> None:
+async def send_command(url: str, data: dict) -> dict | None:
     async with httpx.AsyncClient() as client:
         response = await client.post(url, data=data)
-        if not response.json()['ok']:
+        body = response.json()
+        if not body.get('ok'):
             logger.error(f'Unsuccessful request: {response.content}')
-    return
+            return None
+        return body
 
 
 async def send_msg(chat_id: str | int, msg: str, reply_to: int | None = None,
-                   reply_markup: dict | None = None):
+                   reply_markup: dict | None = None) -> dict | None:
     url = await bot_url() + 'sendMessage'
     data = {
         'chat_id': chat_id,
@@ -25,6 +27,15 @@ async def send_msg(chat_id: str | int, msg: str, reply_to: int | None = None,
         data['reply_to_message_id'] = reply_to
     if reply_markup:
         data['reply_markup'] = json.dumps(reply_markup)
+    return await send_command(url, data)
+
+
+async def delete_msg(chat_id: str | int, message_id: int):
+    url = await bot_url() + 'deleteMessage'
+    data = {
+        'chat_id': chat_id,
+        'message_id': message_id,
+    }
     await send_command(url, data)
 
 
