@@ -1,16 +1,18 @@
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 
 import aiosqlite
-import json
 from sanic import json as sanic_json, HTTPResponse, Request
 from sanic.log import logger
 
 from bot.caching import CACHE
-from bot.senders import send_msg, forward_msg
+from bot.senders import send_msg, forward_msg, copy_msg, answer_callback_query
 
 proxy_to = int(os.environ.get('PROXY_TO'))
 preflight = os.environ.get('PREFLIGHT', '1') == '1'
+
+REPLY_TIMEOUT_SEC = 600
 
 
 async def health(request: Request) -> sanic_json:
@@ -22,80 +24,140 @@ async def health(request: Request) -> sanic_json:
     })
 
 
-async def send_to_user(txt: str) -> None:
-    """
-    txt must be in the form of:
-    send | 90422868 | some message
-    where:
-    send - command to route the message to this coroutine
-    90422868 - the chat_id to which to send the message
-    some message - the message to be sent by the bot
-    """
-    cmd = [e.strip() for e in txt.split('|')]
-    if (not len(cmd) == 3) or (not cmd[0].lower() == 'send') or (not cmd[1].isnumeric()):
-        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' send | <chat_id> | <your_message_here>'))
-        return
-    await send_msg(chat_id=int(cmd[1]), msg=cmd[2])
+def format_sender(user: dict) -> str:
+    parts = [user.get('first_name') or '', user.get('last_name') or '']
+    name = ' '.join(p for p in parts if p).strip()
+    username = f" (@{user['username']})" if user.get('username') else ''
+    display = f"{name}{username}".strip()
+    return display or f"user {user.get('id', '?')}"
 
 
-async def ban_user(txt: str) -> None:
-    cmd = [e.strip() for e in txt.split('|')]
-    if (not len(cmd) == 2) or (not cmd[0].lower() == 'ban') or (not cmd[1].isnumeric()):
-        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' ban | <user id>'))
-        return
-    user_id = int(cmd[1])
+async def _do_ban(user_id: int, user_info: dict | None = None) -> None:
+    first_name = user_info.get('first_name') if user_info else None
+    last_name = user_info.get('last_name') if user_info else None
+    username = user_info.get('username') if user_info else None
     async with aiosqlite.connect('bot/db.sql') as db:
         await db.execute(
-            "INSERT OR IGNORE INTO bans (tg_id, ban_timestamp) VALUES (?, ?);",
-            (user_id, int(datetime.now().timestamp()))
+            "INSERT OR IGNORE INTO bans (tg_id, ban_timestamp, first_name, last_name, username) "
+            "VALUES (?, ?, ?, ?, ?);",
+            (user_id, int(datetime.now().timestamp()), first_name, last_name, username)
         )
         await db.commit()
-    CACHE['ban_list'].append(user_id)
-    await send_msg(chat_id=proxy_to, msg=f'User {user_id} is now banned.')
+    if user_id not in CACHE['ban_list']:
+        CACHE['ban_list'].append(user_id)
 
 
-async def unban_user(txt: str) -> None:
-    cmd = [e.strip() for e in txt.split('|')]
-    if (not len(cmd) == 2) or (not cmd[0].lower() == 'unban') or (not cmd[1].isnumeric()):
-        await send_msg(chat_id=proxy_to, msg=(f'Incorrect message received: "{txt}". Expecting something in the form:'
-                                              f' unban | <user id>'))
-        return
-    user_id = int(cmd[1])
+async def _do_unban(user_id: int) -> bool:
     async with aiosqlite.connect('bot/db.sql') as db:
         async with db.execute("DELETE FROM bans WHERE tg_id=?;", (user_id, )) as cursor:
-            row_count = cursor.rowcount
+            found = cursor.rowcount > 0
             await db.commit()
-            found = True if row_count > 0 else False
     if not found:
-        await send_msg(chat_id=proxy_to, msg=f'User {user_id} not found in the banned users list.')
-        return
+        return False
     try:
         CACHE['ban_list'].remove(user_id)
     except ValueError:
         logger.error(f'Cache out of sync with DB, could not find tg_id {user_id}. Restart the service to do a sync.')
-    await send_msg(chat_id=proxy_to, msg=f'User {user_id} is now unbanned.')
+    return True
 
 
-async def show_bans() -> None:
-    if CACHE['synced']:
-        ban_list = CACHE['ban_list']
+async def ban_cmd(arg: str) -> None:
+    arg = arg.strip()
+    if not arg.isnumeric():
+        await send_msg(chat_id=proxy_to, msg='Usage: /ban <user_id>')
+        return
+    user_id = int(arg)
+    user_info = CACHE['name_cache'].get(user_id)
+    await _do_ban(user_id=user_id, user_info=user_info)
+    name = format_sender(user_info) if user_info else f'user {user_id}'
+    await send_msg(chat_id=proxy_to, msg=f'{name} is now banned.')
+
+
+async def unban_cmd(arg: str) -> None:
+    arg = arg.strip()
+    if not arg.isnumeric():
+        await send_msg(chat_id=proxy_to, msg='Usage: /unban <user_id>')
+        return
+    user_id = int(arg)
+    found = await _do_unban(user_id=user_id)
+    if found:
+        await send_msg(chat_id=proxy_to, msg=f'User {user_id} is now unbanned.')
     else:
-        ban_list = []
-        async with aiosqlite.connect('bot/db.sql') as db:
-            async with db.execute("SELECT tg_id FROM bans") as cursor:
-                async for row in cursor:
-                    ban_list.append(row[0])
-        CACHE['ban_list'] = ban_list
-        CACHE['synced'] = True
-    await send_msg(chat_id=proxy_to, msg=f'Banned users: {ban_list}')
+        await send_msg(chat_id=proxy_to, msg=f'User {user_id} not found in the banned users list.')
+
+
+async def list_bans() -> None:
+    rows = []
+    async with aiosqlite.connect('bot/db.sql') as db:
+        async with db.execute(
+            "SELECT tg_id, ban_timestamp, first_name, last_name, username FROM bans ORDER BY ban_timestamp DESC;"
+        ) as cursor:
+            async for row in cursor:
+                rows.append(row)
+
+    if not rows:
+        await send_msg(chat_id=proxy_to, msg='No banned users.')
+        return
+
+    lines = ['Banned users:']
+    for tg_id, ts, first_name, last_name, username in rows:
+        name_parts = [p for p in (first_name, last_name) if p]
+        name = ' '.join(name_parts)
+        if username:
+            name = f'{name} (@{username})'.strip() if name else f'@{username}'
+        if not name:
+            name = f'user {tg_id}'
+        date = datetime.fromtimestamp(ts, tz=timezone.utc).strftime('%Y-%m-%d')
+        lines.append(f'• {name} — ID {tg_id} — {date}')
+    await send_msg(chat_id=proxy_to, msg='\n'.join(lines))
+
+
+def _pop_reply_target(operator_id: int) -> tuple[int, str] | None:
+    entry = CACHE['reply_targets'].pop(operator_id, None)
+    if not entry:
+        return None
+    target_id, target_name, expires_at = entry
+    if time.time() > expires_at:
+        return None
+    return target_id, target_name
+
+
+async def handle_callback_query(cq: dict) -> HTTPResponse:
+    operator_id = cq['from']['id']
+    data = cq.get('data') or ''
+    cq_id = cq['id']
+
+    try:
+        action, target_id_str = data.split(':', 1)
+        target_id = int(target_id_str)
+    except (ValueError, AttributeError):
+        await answer_callback_query(cq_id, 'Invalid button data.')
+        return HTTPResponse(status=201)
+
+    target_info = CACHE['name_cache'].get(target_id)
+    target_name = format_sender(target_info) if target_info else f'user {target_id}'
+
+    if action == 'r':
+        CACHE['reply_targets'][operator_id] = (
+            target_id, target_name, time.time() + REPLY_TIMEOUT_SEC
+        )
+        await answer_callback_query(cq_id, f'Replying to {target_name}. Send your next message.')
+    elif action == 'b':
+        await _do_ban(user_id=target_id, user_info=target_info)
+        await answer_callback_query(cq_id, f'{target_name} is now banned.')
+    else:
+        await answer_callback_query(cq_id, 'Unknown action.')
+    return HTTPResponse(status=201)
 
 
 async def updates(request: Request) -> HTTPResponse:
+    # Button taps arrive as callback_query, not message.
+    if 'callback_query' in request.json:
+        return await handle_callback_query(request.json['callback_query'])
+
     try:
         message = request.json['message']
-    except KeyError:  # we currently don't handle message edits, new chat members, kick notifications etc.
+    except KeyError:  # edits, chat-member events, etc.
         logger.error(f'An update we don\'t handle received from Telegram: {request.json}')
         return HTTPResponse()
     if message['from']['is_bot']:
@@ -103,7 +165,7 @@ async def updates(request: Request) -> HTTPResponse:
 
     user_id = message['from']['id']
 
-    # ignore banned user
+    # ignore banned users
     if CACHE['synced']:
         if user_id in CACHE['ban_list']:
             return HTTPResponse()
@@ -116,21 +178,36 @@ async def updates(request: Request) -> HTTPResponse:
     chat_id = message['chat']['id']
     txt = message.get('text')
 
-    # handle commands coming from the PROXY_TO chat id
-    if chat_id == proxy_to and txt:
-        if txt.lower().startswith('send'):
-            await send_to_user(txt)
-        elif txt.lower().startswith('ban'):
-            await ban_user(txt)
-        elif txt.lower().startswith('unban'):
-            await unban_user(txt)
-        elif txt.lower().startswith('showbans'):
-            await show_bans()
-        else:  # don't reply to replies to own messages in the PROXY_TO chat
-            return HTTPResponse()
+    # Messages from the PROXY_TO chat: slash commands or pending-reply routing
+    if chat_id == proxy_to:
+        if txt and txt.startswith('/'):
+            parts = txt.split(maxsplit=1)
+            cmd = parts[0].lstrip('/').split('@')[0].lower()
+            arg = parts[1] if len(parts) > 1 else ''
+            if cmd == 'ban':
+                await ban_cmd(arg)
+                return HTTPResponse(status=201)
+            if cmd == 'unban':
+                await unban_cmd(arg)
+                return HTTPResponse(status=201)
+            if cmd == 'bans':
+                await list_bans()
+                return HTTPResponse(status=201)
+            # Unknown slash command — fall through
+        target = _pop_reply_target(user_id)
+        if target:
+            target_id, target_name = target
+            await copy_msg(
+                chat_id=target_id,
+                from_chat_id=proxy_to,
+                message_id=message['message_id'],
+            )
+            await send_msg(chat_id=proxy_to, msg=f'✓ Sent to {target_name}')
+        # else: internal group discussion — ignore
+        return HTTPResponse(status=201)
 
-    # handle messages coming from regular users
-    elif txt == '/myid':
+    # Regular-user commands
+    if txt == '/myid':
         msg = f'Your ID: {user_id}. Chat ID: {chat_id}'
         await send_msg(chat_id=user_id, msg=msg, reply_to=message['message_id'])
     elif txt == '/start':
@@ -138,9 +215,16 @@ async def updates(request: Request) -> HTTPResponse:
         if start_reply:
             await send_msg(chat_id=user_id, msg=start_reply, reply_to=message['message_id'])
     else:
-        if preflight:
-            sender = json.dumps(message['from'], separators=(',', ':'))
-            await send_msg(chat_id=proxy_to, msg=f"Incoming message from: {sender}")
+        # Always cache sender info — used by button callbacks and /ban name lookup
+        CACHE['name_cache'][user_id] = message['from']
         await forward_msg(chat_id=proxy_to, from_chat_id=chat_id, message_id=message['message_id'])
+        if preflight:
+            reply_markup = {
+                'inline_keyboard': [[
+                    {'text': 'Reply', 'callback_data': f'r:{user_id}'},
+                    {'text': 'Ban', 'callback_data': f'b:{user_id}'},
+                ]]
+            }
+            await send_msg(chat_id=proxy_to, msg=f'ID: {user_id}', reply_markup=reply_markup)
 
     return HTTPResponse(status=201)

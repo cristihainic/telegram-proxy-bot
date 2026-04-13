@@ -2,13 +2,25 @@
 
 # Telegram Proxy Bot
 
-A bot to receive and send messages on Telegram without revealing your identity to other users. 
+A self-hosted Telegram bot that turns any chat — your DMs or a shared group — into a **shared inbox**. Incoming messages from users land in your chat; your replies go out under the bot's identity. Nobody on the outside ever sees who's actually behind it.
 
-### Features
-This bot:
-- forwards all messages it receives to a chat (DM or group chat) of your liking;
-- proxies messages back to users without revealing your identity.
-- does **not** store messages.
+### Who's it for?
+
+- **Channel / Group / Forum admins** — collect message proposals, submissions, or reports from your audience. Admins discuss privately in the bot's group, then reply back to the submitter through the bot.
+- **Customer support desks** — a team of operators in a shared group handles customer DMs together. Tap **[Reply]** to route your response back to the sender; your teammates see the context and stay in sync.
+- **Community & channel admins** — field questions from your followers from one place, without exposing personal accounts or passing a phone around.
+- **Sales & leads inbox** — every prospect DM lands in your sales team's group. Any rep can pick it up; no leads fall through the cracks.
+- **Tip lines & anonymous feedback** — student-to-teacher, employee-to-HR, reader-to-editor. Senders stay anonymous if they want; operators always stay anonymous to senders.
+- **Solo privacy** — communicate with strangers (marketplace buyers, forum contacts, one-off acquaintances) without handing over your real Telegram account.
+
+### What it does
+
+- **Forwards** every incoming DM to your chosen chat — text, photos, documents, voice notes, video, stickers, anything.
+- **Single-tap Reply / Ban** — inline buttons under every incoming message. Reply once, any message type, and the user gets it from the bot. No ID copying, no command syntax.
+- **Multi-operator aware** — per-operator reply state, so teammates in a support group don't step on each other.
+- **Ban management** — `/ban <id>`, `/unban <id>`, `/bans` for a formatted list with names and dates. Slash commands appear in Telegram's built-in `/` menu.
+- **Self-hosted** — your server, your data. No per-seat pricing, no third-party vendor, no message logs in someone else's cloud.
+- **No message persistence** — the bot doesn't store message content. GDPR-friendly by design.
 
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
@@ -18,67 +30,46 @@ This bot:
     printf "123asd-mybotkey-blabla" > secrets/bot_api_key
     ```
 3. `cp .env.template .env` and modify the latter to your liking;
-4. `docker compose up` and profit.
+4. **Disable your bot's Group Privacy mode** so it can see all messages in the PROXY_TO group (needed for the Reply button flow):
+   - DM [@BotFather](https://t.me/BotFather) → `/mybots` → select your bot → **Bot Settings** → **Group Privacy** → **Turn off**
+   - If your bot is already in the group, remove it and re-add it for the privacy change to take effect
+   - Without this, Telegram only delivers slash commands and @mentions to your bot — regular operator replies will never reach it
+5. `docker compose up` and profit.
 
 ### Experience the proxy bot awesomeness
 #### Receiving messages 
-To allow you to reply to users and to bypass some annoying Telegram behavior (e.g., no "Forwarded from..." message is included if a user sends you an audio files, leaving you clueless as to _who_ sent the message), the bot will send "pre-flight" messages for all messages it proxies to you. These pre-flight messages include the details of the sender, in the form of:
-```
-Incoming message from: 
-{
-    "id": 19612312371,
-    "is_bot":false,
-    "first_name":"John",
-    "last_name":"Smith",
-    "username":"JS666",
-    "language_code":"en"
-}
-```
-Then, the actual forwarded message ensues.
-
-#### Sending messages
-The Telegram ID above is the unique identifier of a user throughout the app. To have the bot send a reply to a user, **reply** to any of the bot's messages or forwards with this:
+The bot forwards each user message into the PROXY_TO chat, then follows it with a compact action bar containing the user's ID and two inline buttons:
 
 ```
-send | <user id> | <your message here>
+[Forwarded from John Smith: "Hi there"]
+ID: 19612312371
+  [Reply]  [Ban]
 ```
 
-So, if we wanted to send a message back to John Smith, we'd **reply to any** of the bot's messages with:
-```
-send | 19612312371 | Hi John, nice to meet you. You have no idea who's behind this bot.
-```
+For users with strict forward privacy settings (where the forward header just says "Forwarded from a user"), the action bar's ID gives you a handle to identify them — and when you tap **Reply**, the confirmation toast shows their full name since the bot caches it server-side.
 
-John will then receive the message from the bot.
+You can disable the action bar entirely by setting `PREFLIGHT=0` in your `.env` (note: this also hides the Reply/Ban buttons — you'd only have slash commands to manage bans).
 
-#### Banning users
-If you want the bot to ignore messages from certain users (spammers etc), reply to any of its messages with this command:
+#### Replying to messages
+Tap **Reply** on any pre-flight message. Telegram shows a toast:
 ```
-ban | <user id>
+Replying to John Smith (@JS666). Send your next message.
 ```
+Your next message in the PROXY_TO chat — **any type**: text, photo, document, audio, voice, video, sticker — will be delivered to the user as if sent by the bot. A confirmation `✓ Sent to John` is posted in the group.
 
-The bot will send you a message of this sort:
-```
-User <user id> is now banned.
-```
+If you don't send anything within 10 minutes, the pending reply state auto-expires.
 
-#### Unbanning users
-Reply to any of the bot's messages with:
-```
-unban | <user id>
-```
-to unban a user. The bot will send back a message of this sort:
-```
-User <user id> is now unbanned.
-```
+#### Banning, unbanning, listing bans
+Operator commands appear in Telegram's `/` menu inside the PROXY_TO chat:
 
-#### Show all banned users
-Reply to any of the bot's messages with:
+- **`/ban <user_id>`** — ban a user by ID. (You can also tap the **Ban** button on a pre-flight message.)
+- **`/unban <user_id>`** — unban a user.
+- **`/bans`** — list all banned users with names and ban dates:
+
 ```
-showbans
-```
-The bot will send a message of this sort:
-```
-Banned users: <a list of banned users>
+Banned users:
+• John Smith (@JS666) — ID 19612312371 — 2026-04-12
+• Jane Doe — ID 98765 — 2026-04-10
 ```
 
 ### Development

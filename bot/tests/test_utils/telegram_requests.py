@@ -9,6 +9,28 @@ class MockedUpdateRequest:
         return self._json
 
 
+class MockedCallbackQueryRequest:
+    def __init__(self, data: str, from_user_id: int = 90422868, cq_id: str = 'cq_test_1'):
+        self._json = {
+            'update_id': 814547193,
+            'callback_query': {
+                'id': cq_id,
+                'from': {
+                    'id': from_user_id,
+                    'is_bot': False,
+                    'first_name': 'Op',
+                    'username': 'operator',
+                },
+                'chat_instance': 'abc',
+                'data': data,
+            }
+        }
+
+    @property
+    def json(self):
+        return self._json
+
+
 def tg_updates_request_channel_channel():
     return {
         "update_id": 814547192,
