@@ -49,13 +49,13 @@ ID: 19612312371
 For users with strict forward privacy settings (where the forward header just says "Forwarded from a user"), the action bar's ID gives you a handle to identify them — and when you tap **Reply**, the confirmation toast shows their full name since the bot caches it server-side.
 
 #### Replying to messages
-Tap **Reply** on any pre-flight message. Telegram shows a toast:
+Tap **Reply** on any action bar. The bot posts a persistent reminder in the chat:
 ```
-Replying to John Smith (@JS666). Send your next message.
+📝 Replying to John Smith (@JS666). Send any message — auto-cancels in 10 min.
 ```
-Your next message in the PROXY_TO chat — **any type**: text, photo, document, audio, voice, video, sticker — will be delivered to the user as if sent by the bot. A confirmation `✓ Sent to John` is posted in the group.
+Your next message in the PROXY_TO chat — **any type**: text, photo, document, audio, voice, video, sticker — gets delivered to the user as if sent by the bot. The reminder is removed and a confirmation `✓ Sent to John Smith (@JS666)` is posted in its place.
 
-If you don't send anything within 10 minutes, the pending reply state auto-expires.
+If you don't send anything within 10 minutes, the pending reply state auto-expires (the reminder stays as a record of the abandoned reply).
 
 #### Banning, unbanning, listing bans
 Operator commands appear in Telegram's `/` menu inside the PROXY_TO chat:
