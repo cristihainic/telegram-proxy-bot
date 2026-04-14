@@ -22,6 +22,15 @@ A self-hosted Telegram bot that turns any chat — your DMs or a shared group �
 - **Self-hosted** — your server, your data. No per-seat pricing, no third-party vendor, no message logs in someone else's cloud.
 - **No message persistence** — the bot doesn't store message content. GDPR-friendly by design.
 
+### Server requirements
+
+This is a _very_ lightweight bot. The cheapest VPS or Raspberry Pi will do.
+
+- **1 CPU core, 1 GB RAM** — comfortable headroom; 512 MB also works for low-volume installs
+- **~300 MB disk** (Docker image + tiny SQLite DB for bans)
+- **Linux host with Docker + Docker Compose** (any modern distro)
+- **Public HTTPS endpoint** — Telegram requires HTTPS for webhooks. Use a domain with a TLS certificate (Caddy or nginx + Let's Encrypt is the easy route) or [ngrok](https://ngrok.com) for testing.
+
 ### Get your bot running
 1. Clone this repo on the server which you want to run the bot from and `cd` into the root directory;
 2. Create a `secrets` directory with a `bot_api_key` file containing your Telegram bot key:
