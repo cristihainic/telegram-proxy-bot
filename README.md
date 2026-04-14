@@ -70,6 +70,9 @@ Banned users:
 • Jane Doe — ID 98765 — 2026-04-10
 ```
 
+### Need help setting it up?
+If you'd rather not deal with Docker, domains, TLS certificates or BotFather configuration, I can install and configure the bot on your server (or provision a new one) and hand you a working setup. Customization, integrations, and maintenance contracts are also on the table. Drop me a line at **hey@cristi.rocks**.
+
 ### Development
 Contributions are welcome! 
 
