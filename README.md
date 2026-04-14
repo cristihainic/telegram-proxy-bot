@@ -2,7 +2,7 @@
 
 # Telegram Proxy Bot
 
-A self-hosted Telegram bot that turns any chat — your DMs or a shared group — into a **shared inbox**. Incoming messages from users land in your chat; your replies go out under the bot's identity. Nobody on the outside ever sees who's actually behind it.
+A self-hosted Telegram bot that sits between you and your users. Incoming DMs get forwarded into a chat you control — your own or one you share with a team — and your replies go out under the bot's identity. Nobody on the outside ever sees who's actually behind it.
 
 ### Who's it for?
 
